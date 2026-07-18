@@ -3,9 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>光纤链路损耗计算器｜光功率预算在线计算</title>
-  <meta name="description" content="在线计算光纤、熔接点、连接器及分光器损耗，支持 PON 光功率预算、工程余量与收光功率判断。">
+  <title>光纤链路损耗计算器｜PON光功率预算与分光器损耗在线计算</title>
+  <meta name="description" content="免费在线计算光纤链路损耗和PON光功率预算，支持G.652.D、G.657、GPON、XGS-PON、分光器、熔接点、连接器、安全余量及预计接收光功率计算。">
+  <meta name="keywords" content="光纤链路损耗计算器,光功率预算,PON损耗计算,GPON,XGS-PON,分光器损耗,光纤衰减,接收光功率">
+  <meta name="author" content="光纤链路损耗计算器">
+  <meta name="robots" content="index,follow,max-image-preview:large">
   <meta name="theme-color" content="#ffffff">
+  <link rel="canonical" href="https://ddcodedog.github.io/fiber-loss-calculator/">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="alternate icon" href="./favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="manifest" href="./site.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:site_name" content="光纤链路损耗计算器">
+  <meta property="og:title" content="光纤链路损耗计算器｜PON光功率预算在线计算">
+  <meta property="og:description" content="支持GPON、XGS-PON、分光器、熔接点和连接器损耗计算，自动判断链路状态与剩余功率裕量。">
+  <meta property="og:url" content="https://ddcodedog.github.io/fiber-loss-calculator/">
+  <meta property="og:image" content="https://ddcodedog.github.io/fiber-loss-calculator/og-cover.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="光纤链路损耗计算器">
+  <meta name="twitter:description" content="免费计算光纤链路损耗、PON光功率预算与预计接收光功率。">
+  <meta name="twitter:image" content="https://ddcodedog.github.io/fiber-loss-calculator/og-cover.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "name": "光纤链路损耗计算器",
+        "url": "https://ddcodedog.github.io/fiber-loss-calculator/",
+        "description": "在线计算光纤链路损耗、PON光功率预算、预计接收光功率和剩余功率裕量。",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "inLanguage": "zh-CN",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+        "featureList": ["光纤衰减计算", "熔接与连接器损耗计算", "分光器损耗计算", "GPON与XGS-PON预算判断", "预计接收光功率计算"]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "PON为什么检查最小链路损耗？",
+            "acceptedAnswer": { "@type": "Answer", "text": "损耗过小可能使接收端光功率过高并造成过载，因此PON模式会同时检查最小和最大光路损耗。" }
+          },
+          {
+            "@type": "Question",
+            "name": "连接器数量按什么计算？",
+            "acceptedAnswer": { "@type": "Answer", "text": "本工具按单个连接器数量计算，默认单个连接损耗为0.30 dB，可按项目实际计量方式换算。" }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
   <style>
     :root {
       --blue: #1268f3;
@@ -30,7 +85,7 @@
     }
 
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
     body {
       margin: 0;
       min-width: 320px;
@@ -194,6 +249,10 @@
     .sources { color: #778aa1; font-size: 11px; }
     .sources a { color: var(--blue); }
     footer { padding: 12px 20px 34px; text-align: center; color: #778aa1; font-size: 11px; }
+    footer p { margin: 0 0 8px; }
+    .footer-links { display: flex; justify-content: center; gap: 16px; }
+    .footer-links a { color: #45698e; }
+    .footer-links a:hover { color: var(--blue); }
     .toast { position: fixed; left: 50%; bottom: 22px; z-index: 60; transform: translate(-50%, 18px); border-radius: 9px; padding: 10px 15px; background: var(--navy); color: #fff; opacity: 0; pointer-events: none; transition: .2s ease; box-shadow: var(--shadow); }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
@@ -208,27 +267,32 @@
     }
     @media (max-width: 760px) {
       .container { width: min(100% - 24px, 680px); }
-      .site-header { height: 66px; }
-      .brand { gap: 9px; font-size: 18px; }
-      .brand-logo { width: 43px; height: 43px; }
+      .site-header { height: 60px; }
+      .brand { min-width: 0; gap: 8px; font-size: 17px; }
+      .brand span { overflow: hidden; text-overflow: ellipsis; }
+      .brand-logo { flex: 0 0 auto; width: 39px; height: 39px; }
       .nav, .start-link { display: none; }
-      .hero { min-height: 165px; }
-      .hero-inner { padding: 35px 0 27px; }
+      .hero { min-height: 150px; }
+      .hero-inner { padding: 30px 0 24px; }
       h1 { max-width: 75%; font-size: clamp(31px, 9vw, 43px); }
       .hero p { max-width: 72%; font-size: 15px; }
       .fiber-beam { right: -30%; width: 95%; opacity: .48; }
       .form-panel, .result-panel { padding: 18px 15px; }
       .panel-title h2 { font-size: 18px; }
-      .field-row { grid-template-columns: 1fr; gap: 5px; }
-      .field-row .unit { position: absolute; right: 13px; margin-top: 34px; pointer-events: none; }
-      .field-row input { padding-right: 68px; }
+      .parameter-list, .advanced-body { gap: 13px; }
+      .field-row { position: relative; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+      .field-row label { font-size: 13px; }
+      .field-row input, .field-row select { min-height: 44px; font-size: 16px; }
+      .field-row .unit { position: absolute; z-index: 2; right: 11px; bottom: 11px; margin: 0; padding-left: 7px; background: #fff; line-height: 20px; pointer-events: none; }
+      .field-row input { padding-right: 76px; }
       .field-row select { padding-right: 28px; }
+      .field-row select + .unit { display: none; }
       .result-main { align-items: flex-start; padding: 16px; }
       .status { padding: 8px 11px; font-size: 12px; }
       .status::before { width: 23px; height: 23px; font-size: 15px; }
       .loss-cards { grid-template-columns: 1fr; }
       .loss-card { min-height: 75px; }
-      .link-diagram { grid-template-columns: 52px repeat(3, 1fr) 52px; margin-left: 0; margin-right: 0; transform: scale(.92); transform-origin: center; }
+      .link-diagram { grid-template-columns: 48px repeat(3, minmax(46px, 1fr)) 48px; margin-left: 0; margin-right: 0; transform: none; }
       .node-circle { width: 45px; height: 45px; }
       .node.endpoint .node-circle { width: 52px; height: 52px; }
       .link-diagram::before { top: 47px; left: 40px; right: 40px; }
@@ -238,18 +302,27 @@
       .info-card:last-child { grid-column: auto; }
     }
     @media (max-width: 430px) {
+      .container { width: calc(100% - 20px); }
       h1 { max-width: 100%; }
       .hero p { max-width: 92%; }
       .fiber-beam { opacity: .22; }
-      .panel-title { align-items: flex-start; }
-      .mode-switch { flex-direction: column; }
+      .form-panel, .result-panel { padding: 16px 14px; }
+      .panel-title { align-items: center; gap: 8px; }
+      .title-left { gap: 9px; }
+      .title-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 19px; }
+      .mode-switch { flex-direction: row; width: 116px; }
+      .mode-button { flex: 1; padding: 7px 6px; }
       .result-main { display: block; }
       .status { margin-top: 14px; }
       .loss-value { font-size: 48px; }
       .margin-strip { padding: 10px 13px; }
       .margin-strip span { font-size: 14px; }
       .margin-strip strong { font-size: 25px; }
-      .link-diagram { margin-left: -16px; margin-right: -16px; transform: scale(.82); }
+      .link-diagram { grid-template-columns: 44px repeat(3, minmax(42px, 1fr)) 44px; margin-left: -6px; margin-right: -6px; }
+      .node-circle { width: 41px; height: 41px; }
+      .node.endpoint .node-circle { width: 47px; height: 47px; }
+      .link-diagram::before { top: 44px; left: 35px; right: 35px; }
+      .node-name, .node-value { font-size: 10px; }
       .actions { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
@@ -477,8 +550,14 @@
     </section>
   </main>
 
-  <footer>本工具仅供工程估算与学习参考，不替代项目设计文件、设备规格书和现场仪表测试结果。</footer>
+  <footer>
+    <p>本工具仅供工程估算与学习参考，不替代项目设计文件、设备规格书和现场仪表测试结果。</p>
+    <nav class="footer-links" aria-label="页脚导航"><a href="./about.html">关于本站</a><a href="./privacy.html">隐私说明</a></nav>
+  </footer>
   <div class="toast" id="toast" role="status">已复制计算结果</div>
+
+  <script src="./analytics-config.js"></script>
+  <script src="./analytics.js" defer></script>
 
   <script>
     (function () {

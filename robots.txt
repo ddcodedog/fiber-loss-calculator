@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ddcodedog.github.io/fiber-loss-calculator/sitemap.xml

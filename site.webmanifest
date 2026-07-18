@@ -1,0 +1,15 @@
+{
+  "name": "光纤链路损耗计算器",
+  "short_name": "光纤损耗计算",
+  "description": "光纤链路损耗与PON光功率预算在线计算工具",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f9ff",
+  "theme_color": "#1268f3",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

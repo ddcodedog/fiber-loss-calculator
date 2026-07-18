@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="光纤链路损耗计算器，快速计算光纤、熔接点、连接器和安全余量造成的链路损耗。">
+  <title>光纤链路损耗计算器</title>
+  <style>
+    :root {
+      --navy: #081a36;
+      --text: #142642;
+      --muted: #62738d;
+      --primary: #1265ee;
+      --primary-2: #0878ff;
+      --cyan: #12bddd;
+      --cyan-dark: #0794aa;
+      --green: #13a451;
+      --green-soft: #ebfaef;
+      --purple: #7654e8;
+      --border: #d9e6f5;
+      --border-blue: #b9d6ff;
+      --surface: rgba(255, 255, 255, .94);
+      --page: #f3f9ff;
+      --shadow: 0 12px 36px rgba(34, 88, 144, .10);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 90% 20%, rgba(75, 186, 255, .11), transparent 26%),
+        linear-gradient(180deg, #f8fcff 0, var(--page) 55%, #f8fbff 100%);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    svg { display: block; }
+
+    .container {
+      width: min(1420px, calc(100% - 72px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 80px;
+      background: rgba(255,255,255,.92);
+      border-bottom: 1px solid rgba(188, 209, 234, .65);
+      box-shadow: 0 4px 16px rgba(31, 70, 111, .04);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      white-space: nowrap;
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      color: var(--navy);
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      flex: 0 0 54px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 50%;
+      color: white;
+      background: linear-gradient(145deg, #1676ff, #00c9dc);
+      box-shadow: 0 7px 18px rgba(16, 121, 241, .25);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      right: 4px;
+      bottom: 4px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.38);
+      filter: blur(2px);
+    }
+
+    .main-nav { display: flex; align-items: stretch; height: 100%; gap: 56px; }
+    .main-nav a {
+      position: relative;
+      display: flex;
+      align-items: center;
+      color: #17243a;
+      font-size: 17px;
+      transition: color .2s ease;
+    }
+    .main-nav a:hover, .main-nav a.active { color: var(--primary); }
+    .main-nav a.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 10px;
+      height: 3px;
+      border-radius: 3px;
+      background: var(--primary);
+    }
+
+    .nav-cta, .primary-btn {
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 19px rgba(18, 101, 238, .23);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .nav-cta:hover, .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(18, 101, 238, .30);
+    }
+    .nav-cta { padding: 14px 28px; border-radius: 10px; font-size: 17px; }
+
+    .hero {
+      min-height: 205px;
+      display: flex;
+      align-items: center;
+      background-image:
+        linear-gradient(90deg, rgba(245,250,255,.1), rgba(245,250,255,0)),
+        url("assets/fiber-hero.png");
+      background-size: cover;
+      background-position: center right;
+      border-bottom: 1px solid rgba(180, 213, 244, .26);
+    }
+    .hero-copy { padding: 42px 0 34px; }
+    .hero h1 {
+      margin: 0 0 12px;
+      color: var(--navy);
+      font-size: clamp(38px, 4.1vw, 62px);
+      line-height: 1.1;
+      letter-spacing: -2px;
+    }
+    .hero p { margin: 0; color: #53657e; font-size: clamp(18px, 1.8vw, 25px); }
+
+    main { padding: 0 0 52px; }
+    .workspace {
+      display: grid;
+      grid-template-columns: 525px 1fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(217, 230, 245, .9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .calculator-card, .result-card { padding: 22px 25px; }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 0 0 18px;
+      color: var(--navy);
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .heading-icon, .info-icon {
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d2e6ff;
+      border-radius: 12px;
+      color: var(--primary);
+      background: #edf6ff;
+    }
+
+    .form-grid { display: grid; gap: 12px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: minmax(174px, 1fr) minmax(150px, 205px) 55px;
+      gap: 12px;
+      align-items: center;
+    }
+    .form-row label { font-size: 16px; color: #263750; }
+    .form-row .unit { color: #53657c; font-size: 14px; white-space: nowrap; }
+    .number-input {
+      width: 100%;
+      min-width: 0;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid #cfdced;
+      border-radius: 8px;
+      outline: none;
+      color: #18263b;
+      background: #fff;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .number-input:focus {
+      border-color: #6baaff;
+      box-shadow: 0 0 0 3px rgba(18, 101, 238, .11);
+    }
+    .number-input.invalid {
+      border-color: #e95454;
+      box-shadow: 0 0 0 3px rgba(233, 84, 84, .10);
+    }
+
+    .advanced {
+      margin-top: 13px;
+      padding-top: 12px;
+      border-top: 1px solid #e4edf7;
+    }
+    .advanced summary {
+      cursor: pointer;
+      color: #4e6685;
+      font-size: 14px;
+      user-select: none;
+    }
+    .advanced-grid { display: grid; gap: 10px; margin-top: 12px; }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+      padding-top: 16px;
+      margin-top: 16px;
+      border-top: 1px solid #e2ecf6;
+    }
+    .primary-btn, .secondary-btn {
+      min-height: 50px;
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .primary-btn { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .secondary-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid #cddbed;
+      color: #3d4e65;
+      background: #fff;
+      transition: border-color .2s ease, background .2s ease;
+    }
+    .secondary-btn:hover { border-color: #95bdec; background: #f7fbff; }
+
+    .result-card { display: flex; flex-direction: column; }
+    .result-card .panel-heading { margin-bottom: 10px; }
+
+    .total-result {
+      min-height: 128px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 25px;
+      border: 1px solid var(--border-blue);
+      border-radius: 15px;
+      background: linear-gradient(110deg, rgba(248,252,255,.95), rgba(239,248,255,.70));
+    }
+    .total-label { font-weight: 800; font-size: 21px; color: #10213c; }
+    .total-number {
+      margin-top: 2px;
+      color: var(--primary);
+      font-weight: 800;
+      font-size: clamp(48px, 5vw, 65px);
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+    .total-number small { font-size: .52em; letter-spacing: 0; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 20px;
+      border: 1px solid #72d493;
+      border-radius: 20px;
+      color: #16883f;
+      background: var(--green-soft);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--green);
+    }
+    .status-pill.warning { color: #9b6810; border-color: #e6c36d; background: #fff9e9; }
+    .status-pill.warning .status-dot { background: #d99a17; }
+    .status-pill.danger { color: #ae3838; border-color: #ef9b9b; background: #fff0f0; }
+    .status-pill.danger .status-dot { background: #df4d4d; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 13px;
+    }
+    .metric-card {
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 14px;
+      border: 1px solid #bfdcff;
+      border-radius: 14px;
+      background: rgba(255,255,255,.7);
+    }
+    .metric-icon {
+      width: 58px;
+      height: 58px;
+      flex: 0 0 58px;
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+      border: 1px solid #add1ff;
+      border-radius: 50%;
+      background: #eff7ff;
+    }
+    .metric-card:nth-child(2) .metric-icon { color: var(--cyan-dark); border-color: #aee6e4; background: #effcfb; }
+    .metric-card:nth-child(3) .metric-icon { color: var(--purple); border-color: #d5c9ff; background: #f7f3ff; }
+    .metric-label { color: #2b3a51; font-size: 15px; }
+    .metric-value { margin-top: 3px; color: var(--primary); font-size: 26px; font-weight: 800; }
+    .metric-value small { font-size: 15px; }
+    .metric-card:nth-child(2) .metric-value { color: var(--cyan-dark); }
+    .metric-card:nth-child(3) .metric-value { color: #6847ca; }
+
+    .link-diagram {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr 70px;
+      align-items: start;
+      margin: 18px 12px 8px;
+    }
+    .link-node {
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      color: #344158;
+      font-size: 12px;
+    }
+    .node-label { margin-bottom: 8px; font-size: 14px; white-space: nowrap; }
+    .node-circle {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--primary);
+      border: 1px solid #9cc8ff;
+      background: #f2f8ff;
+      box-shadow: 0 0 0 5px rgba(43, 141, 255, .05);
+    }
+    .link-node.endpoint .node-circle {
+      width: 62px;
+      height: 62px;
+      color: #fff;
+      border: 3px solid #fff;
+      background: linear-gradient(145deg, #078fe9, #1970f4);
+      box-shadow: 0 0 0 2px #21c6ed, 0 6px 18px rgba(10, 114, 239, .28);
+    }
+    .link-node:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      left: 50%;
+      top: 64px;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #17c0e2, #109dde);
+    }
+    .link-node:first-child::after, .link-node:nth-child(4)::after {
+      background: repeating-linear-gradient(90deg, #17b8de 0 6px, transparent 6px 10px);
+    }
+    .node-meta { margin-top: 7px; line-height: 1.35; }
+
+    .margin-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 55px;
+      margin-top: auto;
+      padding: 9px 20px;
+      border: 1px solid #c9dff7;
+      border-radius: 12px;
+      background: rgba(250,253,255,.85);
+    }
+    .margin-bar span:first-child { font-size: 19px; font-weight: 800; }
+    .margin-value { color: var(--green); font-size: 30px; font-weight: 800; }
+    .margin-value.warning { color: #ce8d15; }
+    .margin-value.danger { color: #dd4848; }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr 1.05fr;
+      gap: 18px;
+      margin-top: 20px;
+    }
+    .info-card { min-height: 162px; padding: 18px 24px; }
+    .info-title {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin: 0 0 12px;
+      color: var(--navy);
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .info-card:nth-child(2) .info-icon { color: white; border: 0; background: linear-gradient(145deg, #19c5d4, #0a9bc3); }
+    .info-card:nth-child(3) .info-icon { color: white; border: 0; background: linear-gradient(145deg, #8361ef, #6847e3); }
+    .info-card p, .info-card li { color: #53647b; font-size: 14px; line-height: 1.75; }
+    .info-card p { margin: 4px 0; }
+    .info-card ul, .info-card ol { margin: 0; padding-left: 21px; }
+
+    footer { padding: 26px 20px 36px; text-align: center; color: #718096; font-size: 13px; }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: 30px;
+      transform: translate(-50%, 20px);
+      padding: 12px 18px;
+      color: white;
+      border-radius: 10px;
+      background: rgba(10, 31, 59, .94);
+      box-shadow: 0 12px 30px rgba(0,0,0,.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1120px) {
+      .container { width: min(100% - 36px, 980px); }
+      .main-nav { gap: 28px; }
+      .workspace { grid-template-columns: 1fr; }
+      .result-card { min-height: 520px; }
+    }
+
+    @media (max-width: 760px) {
+      .container { width: min(100% - 24px, 620px); }
+      .topbar { height: 66px; }
+      .brand { font-size: 18px; gap: 9px; }
+      .brand-mark { width: 42px; height: 42px; flex-basis: 42px; }
+      .main-nav { display: none; }
+      .nav-cta { padding: 10px 15px; font-size: 14px; }
+      .hero { min-height: 176px; background-position: 60% center; }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 66px 0 auto;
+        height: 176px;
+        background: linear-gradient(90deg, rgba(247,252,255,.94) 0, rgba(247,252,255,.78) 60%, rgba(247,252,255,.14));
+      }
+      .hero { position: relative; }
+      .hero-copy { position: relative; z-index: 1; padding: 34px 0; }
+      .hero h1 { font-size: clamp(32px, 10vw, 44px); letter-spacing: -1px; }
+      .hero p { max-width: 80%; font-size: 17px; }
+      main { padding-bottom: 28px; }
+      .workspace { gap: 14px; }
+      .calculator-card, .result-card { padding: 18px 15px; border-radius: 16px; }
+      .panel-heading { font-size: 20px; }
+      .form-row { grid-template-columns: minmax(120px, 1fr) minmax(105px, 145px) 45px; gap: 8px; }
+      .form-row label { font-size: 14px; }
+      .form-row .unit { font-size: 12px; }
+      .form-actions { gap: 10px; }
+      .total-result { align-items: flex-start; flex-direction: column; padding: 17px; }
+      .total-number { font-size: 52px; }
+      .status-pill { padding: 9px 13px; font-size: 14px; }
+      .status-dot { width: 27px; height: 27px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 9px; }
+      .metric-card { min-height: 72px; }
+      .metric-icon { width: 48px; height: 48px; flex-basis: 48px; }
+      .link-diagram { grid-template-columns: repeat(5, 1fr); margin: 20px 0 13px; }
+      .link-node.endpoint .node-circle, .node-circle { width: 44px; height: 44px; }
+      .link-node:not(:last-child)::after { top: 58px; }
+      .node-label { font-size: 12px; }
+      .node-meta { font-size: 10px; }
+      .margin-bar { padding: 10px 13px; }
+      .margin-bar span:first-child { font-size: 16px; }
+      .margin-value { font-size: 24px; }
+      .info-grid { grid-template-columns: 1fr; gap: 13px; }
+      .info-card { min-height: 0; padding: 18px; }
+    }
+
+    @media (max-width: 410px) {
+      .brand span { display: none; }
+      .form-row { grid-template-columns: 1fr 110px 39px; }
+      .form-actions { grid-template-columns: 1fr; }
+      .link-node:nth-child(2) .node-label, .link-node:nth-child(3) .node-label, .link-node:nth-child(4) .node-label { visibility: hidden; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav-inner">
+      <a class="brand" href="#home" aria-label="光纤链路损耗计算器首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
+            <path d="M7 27C14 18 20 17 32 19" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/>
+            <path d="M8 20C15 12 21 12 33 14" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" opacity=".9"/>
+            <path d="M10 13C17 7 24 8 32 10" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" opacity=".75"/>
+            <circle cx="33" cy="19" r="2.8" fill="currentColor"/>
+            <circle cx="33" cy="14" r="2.3" fill="currentColor" opacity=".9"/>
+            <circle cx="32" cy="10" r="2" fill="currentColor" opacity=".75"/>
+          </svg>
+        </span>
+        <span>光纤链路损耗计算器</span>
+      </a>
+      <nav class="main-nav" aria-label="主导航">
+        <a href="#home" class="active">首页</a>
+        <a href="#calculator">计算器</a>
+        <a href="#guide">使用指南</a>
+        <a href="#knowledge">光纤知识</a>
+      </nav>
+      <button class="nav-cta" type="button" data-scroll="#calculator">开始使用</button>
+    </div>
+  </header>
+
+  <section class="hero" id="home">
+    <div class="container hero-copy">
+      <h1>光纤链路损耗计算器</h1>
+      <p>快速、准确地评估光纤链路预算</p>
+    </div>
+  </section>
+
+  <main class="container" id="calculator">
+    <section class="workspace" aria-label="光纤链路计算工作区">
+      <form class="panel calculator-card" id="loss-form" novalidate>
+        <h2 class="panel-heading">
+          <span class="heading-icon" aria-hidden="true">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 5h16M4 12h16M4 19h16"/><circle cx="9" cy="5" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="8" cy="19" r="2" fill="white"/>
+            </svg>
+          </span>
+          链路参数
+        </h2>
+
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="distance">传输距离（km）</label>
+            <input class="number-input" id="distance" name="distance" type="number" min="0" max="1000" step="0.1" value="20" required>
+            <span class="unit">km</span>
+          </div>
+          <div class="form-row">
+            <label for="attenuation">光纤衰减系数（dB/km）</label>
+            <input class="number-input" id="attenuation" name="attenuation" type="number" min="0" max="10" step="0.01" value="0.20" required>
+            <span class="unit">dB/km</span>
+          </div>
+          <div class="form-row">
+            <label for="splices">熔接点数量</label>
+            <input class="number-input" id="splices" name="splices" type="number" min="0" max="10000" step="1" value="6" required>
+            <span class="unit">个</span>
+          </div>
+          <div class="form-row">
+            <label for="spliceLoss">单个熔接损耗（dB）</label>
+            <input class="number-input" id="spliceLoss" name="spliceLoss" type="number" min="0" max="10" step="0.01" value="0.10" required>
+            <span class="unit">dB</span>
+          </div>
+          <div class="form-row">
+            <label for="connectors">连接器数量</label>
+            <input class="number-input" id="connectors" name="connectors" type="number" min="0" max="10000" step="1" value="4" required>
+            <span class="unit">个</span>
+          </div>
+          <div class="form-row">
+            <label for="connectorLoss">单个连接损耗（dB）</label>
+            <input class="number-input" id="connectorLoss" name="connectorLoss" type="number" min="0" max="10" step="0.01" value="0.30" required>
+            <span class="unit">dB</span>
+          </div>
+          <div class="form-row">
+            <label for="safetyMargin">安全余量（dB）</label>
+            <input class="number-input" id="safetyMargin" name="safetyMargin" type="number" min="0" max="50" step="0.1" value="3.00" required>
+            <span class="unit">dB</span>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>高级参数：发射功率与接收灵敏度</summary>
+          <div class="advanced-grid">
+            <div class="form-row">
+              <label for="txPower">发射功率（dBm）</label>
+              <input class="number-input" id="txPower" name="txPower" type="number" min="-50" max="50" step="0.1" value="0">
+              <span class="unit">dBm</span>
+            </div>
+            <div class="form-row">
+              <label for="rxSensitivity">接收灵敏度（dBm）</label>
+              <input class="number-input" id="rxSensitivity" name="rxSensitivity" type="number" min="-80" max="20" step="0.1" value="-15">
+              <span class="unit">dBm</span>
+            </div>
+          </div>
+        </details>
+
+        <div class="form-actions">
+          <button class="primary-btn" type="submit">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2m4 0h2M8 15h2m4 0h2M8 19h2m4 0h2"/></svg>
+            开始计算
+          </button>
+          <button class="secondary-btn" type="reset">
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            重置
+          </button>
+        </div>
+      </form>
+
+      <section class="panel result-card" aria-labelledby="result-title">
+        <h2 class="panel-heading" id="result-title">
+          <span class="heading-icon" aria-hidden="true">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="11" width="4" height="10" rx="1"/><rect x="10" y="4" width="4" height="17" rx="1"/><rect x="17" y="7" width="4" height="14" rx="1"/></svg>
+          </span>
+          计算结果
+        </h2>
+
+        <div class="total-result" aria-live="polite">
+          <div>
+            <div class="total-label">总链路损耗</div>
+            <div class="total-number"><span id="total-loss">8.80</span> <small>dB</small></div>
+          </div>
+          <div class="status-pill" id="status-pill">
+            <span class="status-dot" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 12 4 4L19 6"/></svg>
+            </span>
+            <span>链路状态：<span id="status-text">良好</span></span>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">
+              <svg width="31" height="31" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c5-8 9-9 14-4s7 2 10-4"/><path d="M5 24c5-7 8-7 12-3s7 2 10-3"/><circle cx="28" cy="12" r="2"/></svg>
+            </span>
+            <div><div class="metric-label">光纤损耗</div><div class="metric-value"><span id="fiber-loss">4.00</span> <small>dB</small></div></div>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 16h7m8 0h7M16 5v7m0 8v7"/><path d="m11 11 5 5 5-5M11 21l5-5 5 5"/></svg>
+            </span>
+            <div><div class="metric-label">熔接损耗</div><div class="metric-value"><span id="splice-loss">0.60</span> <small>dB</small></div></div>
+          </article>
+          <article class="metric-card">
+            <span class="metric-icon" aria-hidden="true">
+              <svg width="31" height="31" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 21 12-12 3 3-12 12z"/><path d="m7 19 6 6-3 3-6-6zm14-12 4 4 3-3-4-4z"/><path d="m18 12 3 3"/></svg>
+            </span>
+            <div><div class="metric-label">连接损耗</div><div class="metric-value"><span id="connector-loss">1.20</span> <small>dB</small></div></div>
+          </article>
+        </div>
+
+        <div class="link-diagram" aria-label="链路损耗组成示意图">
+          <div class="link-node endpoint">
+            <div class="node-label">发射端</div>
+            <div class="node-circle"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19"/></svg></div>
+          </div>
+          <div class="link-node">
+            <div class="node-label">光纤</div>
+            <div class="node-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="4"/></svg></div>
+            <div class="node-meta">光纤<br><span id="diagram-fiber">4.00 dB</span></div>
+          </div>
+          <div class="link-node">
+            <div class="node-label">熔接</div>
+            <div class="node-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h6m6 0h6M12 3v6m0 6v6"/><path d="m8 8 4 4 4-4m-8 8 4-4 4 4"/></svg></div>
+            <div class="node-meta">熔接<br><span id="diagram-splice">0.60 dB</span></div>
+          </div>
+          <div class="link-node">
+            <div class="node-label">连接器</div>
+            <div class="node-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m7 15 8-8 3 3-8 8zM5 13l6 6-3 3-6-6zm10-8 4 4 3-3-4-4z"/></svg></div>
+            <div class="node-meta">连接器<br><span id="diagram-connector">1.20 dB</span></div>
+          </div>
+          <div class="link-node endpoint">
+            <div class="node-label">接收端</div>
+            <div class="node-circle"><svg width="25" height="25" viewBox="0 0 24 24" fill="currentColor"><path d="m17 12-8 6V6z"/></svg></div>
+          </div>
+        </div>
+
+        <div class="margin-bar">
+          <span>剩余功率裕量</span>
+          <span class="margin-value" id="power-margin">6.20 dB</span>
+        </div>
+      </section>
+    </section>
+
+    <section class="info-grid" id="knowledge">
+      <article class="panel info-card">
+        <h2 class="info-title">
+          <span class="info-icon" aria-hidden="true"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18c3-1 4-9 7-12m-5 5h6m3-4h5m-2-3v6"/><path d="m14 18 6-6m-6 0 6 6"/></svg></span>
+          计算公式
+        </h2>
+        <p>基础损耗 = 光纤损耗 + 熔接损耗 + 连接损耗</p>
+        <p>总链路损耗 = 基础损耗 + 安全余量</p>
+        <p>光纤损耗 = 传输距离 × 光纤衰减系数</p>
+      </article>
+      <article class="panel info-card">
+        <h2 class="info-title">
+          <span class="info-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-8 4 8 4 8-4-8-4Z"/><path d="m4 12 8 4 8-4M4 17l8 4 8-4"/></svg></span>
+          典型参数
+        </h2>
+        <ul>
+          <li>单模光纤衰减：约0.18～0.25 dB/km（1550 nm）</li>
+          <li>单模光纤衰减：约0.30～0.40 dB/km（1310 nm）</li>
+          <li>熔接点损耗：约0.02～0.15 dB/点</li>
+        </ul>
+      </article>
+      <article class="panel info-card" id="guide">
+        <h2 class="info-title">
+          <span class="info-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z"/><path d="M8 7h8M8 11h6"/></svg></span>
+          使用说明
+        </h2>
+        <ol>
+          <li>输入链路各项参数，可按设备手册修改高级参数</li>
+          <li>点击“开始计算”获取损耗组成与功率裕量</li>
+          <li>结合安全余量和实测光功率评估链路可靠性</li>
+        </ol>
+      </article>
+    </section>
+  </main>
+
+  <footer>光纤链路损耗计算器 · 计算结果仅供工程设计参考，现场应以仪表实测为准</footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const form = document.getElementById('loss-form');
+      const inputs = [...form.querySelectorAll('input[type="number"]')];
+      const $ = (id) => document.getElementById(id);
+      let toastTimer;
+
+      const defaults = {
+        distance: 20,
+        attenuation: 0.20,
+        splices: 6,
+        spliceLoss: 0.10,
+        connectors: 4,
+        connectorLoss: 0.30,
+        safetyMargin: 3.00,
+        txPower: 0,
+        rxSensitivity: -15
+      };
+
+      function showToast(message) {
+        const toast = $('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+      }
+
+      function readNumber(id) {
+        return Number.parseFloat($(id).value);
+      }
+
+      function validate() {
+        let valid = true;
+        inputs.forEach(input => {
+          const value = Number.parseFloat(input.value);
+          const min = input.min === '' ? -Infinity : Number(input.min);
+          const max = input.max === '' ? Infinity : Number(input.max);
+          const bad = !Number.isFinite(value) || value < min || value > max;
+          input.classList.toggle('invalid', bad);
+          input.setAttribute('aria-invalid', bad ? 'true' : 'false');
+          valid = valid && !bad;
+        });
+        return valid;
+      }
+
+      function format(value) {
+        return Number.isFinite(value) ? value.toFixed(2) : '0.00';
+      }
+
+      function setStatus(margin) {
+        const pill = $('status-pill');
+        const marginEl = $('power-margin');
+        pill.classList.remove('warning', 'danger');
+        marginEl.classList.remove('warning', 'danger');
+
+        if (margin >= 3) {
+          $('status-text').textContent = '良好';
+        } else if (margin >= 0) {
+          $('status-text').textContent = '裕量偏低';
+          pill.classList.add('warning');
+          marginEl.classList.add('warning');
+        } else {
+          $('status-text').textContent = '预算不足';
+          pill.classList.add('danger');
+          marginEl.classList.add('danger');
+        }
+      }
+
+      function calculate(announce = false) {
+        if (!validate()) {
+          showToast('请检查标红的参数，输入值必须在合理范围内');
+          return false;
+        }
+
+        const fiberLoss = readNumber('distance') * readNumber('attenuation');
+        const spliceLoss = readNumber('splices') * readNumber('spliceLoss');
+        const connectorLoss = readNumber('connectors') * readNumber('connectorLoss');
+        const totalLoss = fiberLoss + spliceLoss + connectorLoss + readNumber('safetyMargin');
+        const availableBudget = readNumber('txPower') - readNumber('rxSensitivity');
+        const powerMargin = availableBudget - totalLoss;
+
+        $('fiber-loss').textContent = format(fiberLoss);
+        $('splice-loss').textContent = format(spliceLoss);
+        $('connector-loss').textContent = format(connectorLoss);
+        $('total-loss').textContent = format(totalLoss);
+        $('diagram-fiber').textContent = `${format(fiberLoss)} dB`;
+        $('diagram-splice').textContent = `${format(spliceLoss)} dB`;
+        $('diagram-connector').textContent = `${format(connectorLoss)} dB`;
+        $('power-margin').textContent = `${format(powerMargin)} dB`;
+        setStatus(powerMargin);
+
+        if (announce) showToast('计算完成，结果已更新');
+        return true;
+      }
+
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        calculate(true);
+      });
+
+      form.addEventListener('reset', () => {
+        setTimeout(() => {
+          Object.entries(defaults).forEach(([key, value]) => { $(key).value = value; });
+          inputs.forEach(input => input.classList.remove('invalid'));
+          calculate(false);
+          showToast('已恢复默认参数');
+        }, 0);
+      });
+
+      inputs.forEach(input => {
+        input.addEventListener('input', () => input.classList.remove('invalid'));
+        input.addEventListener('change', () => calculate(false));
+      });
+
+      document.querySelectorAll('[data-scroll]').forEach(button => {
+        button.addEventListener('click', () => document.querySelector(button.dataset.scroll)?.scrollIntoView({ behavior: 'smooth' }));
+      });
+
+      const navLinks = [...document.querySelectorAll('.main-nav a')];
+      navLinks.forEach(link => link.addEventListener('click', () => {
+        navLinks.forEach(item => item.classList.remove('active'));
+        link.classList.add('active');
+      }));
+
+      calculate(false);
+    })();
+  </script>
+</body>
+</html>
